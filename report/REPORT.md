@@ -13,9 +13,9 @@
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
 
-- H1 (subagents so với baseline): Chưa điền trước khi hoàn thành các lần chạy tác vụ học và phân loại lỗi.
-- H2 (skills-auto so với baseline): Chưa điền trước khi hoàn thành các lần chạy tác vụ học và phân loại lỗi.
-- H3 (tác vụ học so với tác vụ đánh giá): Chưa điền trước khi hoàn thành các lần chạy tác vụ học và phân loại lỗi.
+- H1 (subagents so với baseline): Dự đoán `subagents` không nhất thiết tăng điểm trung bình so với `baseline` trên tác vụ đánh giá, nhưng sẽ tốn nhiều token hơn. Các tác vụ nhỏ cần giữ ngữ cảnh liên tục; subagent cô lập ngữ cảnh và phải nhận lại đầy đủ quy tắc trong lời giao việc. `02_subagents.md` cũng nêu chi phí đa tác tử thường tăng đáng kể.
+- H2 (skills-auto so với baseline): Dự đoán `skills-auto` có thể cải thiện các check quy ước đã xuất hiện ở tác vụ học nếu tác tử đọc skill, nhưng lợi ích trên tác vụ đánh giá có thể nhỏ hoặc âm do quy ước mới và nguy cơ quá khớp. Căn cứ: `04_curator.md` tóm tắt SkillsBench và SkillEvolBench, đồng thời GUIDE yêu cầu tách tập học/tập đánh giá để kiểm tra chính rủi ro này.
+- H3 (tác vụ học so với tác vụ đánh giá): Dự đoán điểm các tác vụ học cao hơn tác vụ đánh giá cùng điều kiện, đặc biệt ở `skills-auto`, vì curator chỉ nhận phản hồi `detail` của tác vụ học; tác vụ đánh giá thêm một quy ước không có trong phản hồi học.
 
 ## 3. Làm quen Deep Agents (Phần 0.3)
 
@@ -52,20 +52,26 @@ Chưa có dữ liệu hoàn chỉnh; sẽ chèn nguyên văn `report/table.md` v
 
 ## 8. Phân tích
 
-Chưa phân tích trước khi có số liệu thực nghiệm.
+Chưa có đủ dữ liệu thực nghiệm để so sánh ba điều kiện. Lần chạy duy nhất bị lỗi hạ tầng `429 RESOURCE_EXHAUSTED` sau khi đạt giới hạn request của Gemini free tier; theo GUIDE, lỗi hạ tầng không được phân loại là lỗi của tác tử và không dùng làm bằng chứng cho hiệu quả hay chi phí của một điều kiện.
 
 ## 9. Hạn chế và tính hợp lệ
 
-1. Chưa đánh giá trước khi có kết quả thực nghiệm.
-2. Chưa đánh giá trước khi có kết quả thực nghiệm.
-3. Chưa đánh giá trước khi có kết quả thực nghiệm.
+1. Quota Gemini free tier hết sau một lần chạy không hoàn chỉnh, nên chưa có đủ 6 tác vụ cho bất kỳ điều kiện nào. Vì vậy không thể ước lượng điểm trung bình, chi phí token hoặc chênh lệch giữa các điều kiện; mọi kết luận về hiệu quả đều chưa có giá trị.
+2. Thiết kế gốc chỉ dự kiến một lần chạy cho mỗi cấu hình. Dù đủ quota, tính ngẫu nhiên của mô hình khiến chênh lệch nhỏ có thể là nhiễu thay vì tác động của subagent hoặc skill.
+3. Bộ tác vụ do giảng viên thiết kế với các quy ước Acme cố định và chỉ dùng một mô hình Gemini. Kết quả, nếu có, chỉ khái quát hạn chế cho các họ code/data/logs và cấu hình model này; không suy rộng cho mọi bài toán tác tử.
 
 ## 10. Kết luận
 
-Chưa kết luận trước khi có số liệu thực nghiệm.
+Harness đã vượt toàn bộ kiểm tra ngoại tuyến trong Docker Linux. Tuy nhiên, quota Gemini cạn trước khi thu thập đủ kết quả nên chưa thể kết luận về hiệu quả của đa tác tử hoặc skill tự sinh. Bước tiếp theo là chạy lại toàn bộ ma trận thí nghiệm bằng một project có quota hợp lệ, giữ nguyên harness và quy trình đóng băng.
 
 ## Phụ lục
 
-- Lệnh đã chạy (theo thứ tự): Chưa có.
+- Lệnh đã chạy (theo thứ tự):
+  1. `python -m pytest tests/test_01_provided.py -q` (Windows, sau khi cài editable; đạt 15 passed với `--basetemp` cục bộ).
+  2. `python scripts/tour.py`.
+  3. `docker build -t lab-deepagents-local .`.
+  4. `docker run --rm -v "$PWD:/lab" -w /lab lab-deepagents-local python -m pytest tests --basetemp /tmp/lab-pytest` (32 passed).
+  5. `docker run --rm --env-file .env -v "$PWD:/lab" -w /lab lab-deepagents-local python -c "from lab.model import make_model; print(make_model().invoke('Reply with exactly OK').content)"` (Gemini trả `OK`).
+  6. `python -m lab.runner --condition baseline --tasks learn` trong Docker; dừng sau khi API trả `429 RESOURCE_EXHAUSTED` để tránh tạo thêm kết quả lỗi quota.
 - Thử thách mở rộng (nếu có): Chưa chọn.
 - Ghi chú khác: Khóa Gemini chỉ được lưu cục bộ trong `.env` dưới biến `GOOGLE_API_KEY`; không đưa khóa vào mã nguồn, vết chạy hoặc báo cáo.
